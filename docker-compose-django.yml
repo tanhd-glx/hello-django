@@ -1,0 +1,39 @@
+version: "3.3"
+
+networks:
+  net:
+    driver: overlay
+    attachable: true
+  traefik-public:
+    external: true
+
+services:
+  django:
+    image: registry.gitlab.com/tanhoangduc1999/hello-django:latest
+    networks:
+      - default
+      - net
+      - traefik-public
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=traefik-public
+        - traefik.constraint-label=traefik-public
+        - traefik.http.routers.django-http.rule=Host(`django.ductan.me`)
+        - traefik.http.routers.django-http.entrypoints=http
+        - traefik.http.routers.django-http.middlewares=https-redirect
+        - traefik.http.routers.django-https.rule=Host(`django.ductan.me`)
+        - traefik.http.routers.django-https.entrypoints=https
+        - traefik.http.routers.django-https.tls=true
+        - traefik.http.routers.django-https.tls.certresolver=le
+        - traefik.http.services.django.loadbalancer.server.port=8000
